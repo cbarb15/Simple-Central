@@ -18,7 +18,6 @@
 
 /* Example/Board Header files */
 #include "Board.h"
-#include "myData.h"
 
 //Task_Struct myTask;
 //#define THREADSTACKSIZE    1024

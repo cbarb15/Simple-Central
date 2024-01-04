@@ -70,7 +70,6 @@
 
 /* Example/Board Header files */
 #include "Board.h"
-#include "myData.h"
 
 #if defined( USE_FPGA ) || defined( DEBUG_SW_TRACE )
 #include <driverlib/ioc.h>
@@ -285,8 +284,6 @@ Clock_Struct clkStruct;
 Clock_Handle clkHandle;
 Semaphore_Handle semHandle;
 
-
-// === SOLUTION===
 char *Util_convertBytes2Str(uint8_t *pData, uint8_t length)
 {
   uint8_t     charCnt;
@@ -711,8 +708,6 @@ static void SimpleCentral_init(void)
     //HCI_LE_WriteSuggestedDefaultDataLenCmd(APP_SUGGESTED_PDU_SIZE, APP_SUGGESTED_TX_TIME);
   }
 
-  MyData_AddService( selfEntity );
-
 //  uint8_t myData_data_initVal[MYDATA_DATA_LEN] = {0};
 //  MyData_SetParameter(MYDATA_DATA_ID, MYDATA_DATA_LEN, myData_data_initVal);
   Display_print0(dispHandle, 0, 0, "BLE Central");
@@ -907,6 +902,9 @@ void clock_Handler(UArg arg) {
 }
 
 
+attReadReq_t readReq;
+uint8_t readStatus;
+
 void readAttr_thread(UArg a0, UArg a1) {
 
      Semaphore_Params semParams;
@@ -934,18 +932,18 @@ void readAttr_thread(UArg a0, UArg a1) {
      clkHandle = Clock_handle(&clkStruct);
      Clock_start(clkHandle);
 
-
     while (1) {
-//        uint32_t events;
-//
-//        events = Event_pend(syncEvent, Event_Id_NONE, SBC_ALL_EVENTS,
-//                                ICALL_TIMEOUT_FOREVER);
+
         /* Pend on semaphore, tmp116Sem */
         Semaphore_pend(semHandle, BIOS_WAIT_FOREVER);
 
-        uint16_t* len = 0;
-        MyData_GetParameter(MYDATA_DATA_ID, len, &bleReadValue);
-        Display_printf(dispHandle, 6, 0, "ADC value read from ble: %d\n", bleReadValue);
+
+
+        readReq.handle = 5;
+        readStatus = GATT_ReadCharValue(connHandle, &readReq, selfEntity);
+        Display_print1(dispHandle, 18, 0, "Read Status: %d", readStatus);
+//        Display_printf(dispHandle, 6, 0, "Value Read: %d\n", req);
+//        Display_printf(dispHandle, 6, 0, "ADC value read from ble: %d\n", bleReadValue);
         Clock_start(clkHandle);
     }
 }
@@ -1440,8 +1438,10 @@ static void SimpleCentral_handleKeys(uint8_t shift, uint8_t keys)
  *
  * @return  none
  */
+gattMsgEvent_t *pMsgCopy;
 static void SimpleCentral_processGATTMsg(gattMsgEvent_t *pMsg)
 {
+  pMsgCopy = pMsg;
   if (state == BLE_STATE_CONNECTED)
   {
     // See if GATT server was unable to transmit an ATT response
@@ -1462,7 +1462,7 @@ static void SimpleCentral_processGATTMsg(gattMsgEvent_t *pMsg)
       else
       {
         // After a successful read, display the read value
-        Display_print1(dispHandle, 4, 0, "Read rsp: %d", pMsg->msg.readRsp.pValue[0]);
+        Display_print1(dispHandle, 19, 0, "Read rsp: %d", pMsg->msg.readRsp.pValue[0]);
       }
 
       procedureInProgress = FALSE;
